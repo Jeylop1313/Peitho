@@ -52,7 +52,7 @@ async def call_agent_model(
     # Initialize the raw model with the provided configuration and bind the tools
     raw_model = init_model(config)
     model = raw_model.bind_tools([scrape_website, search, info_tool], tool_choice="any")
-    response = cast(AIMessage, await model.ainvoke(messages))
+    response = cast(AIMessage, await model.ainvoke(messages)) # type: ignore[redundant-cast]
 
     # Initialize info to None
     info = None
