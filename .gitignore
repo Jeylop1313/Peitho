@@ -161,3 +161,20 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .DS_Store
+
+
+# HERMES — resultados de evaluación (regenerables, pesados)
+src/results_current.json
+src/results_*.json
+src/ablation_*.json
+
+# HERMES — diagnósticos (regenerables, excepto summary)
+src/diagnostics_output/*
+!src/diagnostics_output/summary.md
+
+# Lock files de Excel
+~$*.xlsx
+**/~$*.xlsx
+
+# Sistema Windows
+Thumbs.db
