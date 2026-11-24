@@ -29,7 +29,7 @@ load_dotenv()
 # ============================================================
 
 TECHNIQUE = "zero_shot"   # "zero_shot" o "cot"
-DATASET   = "semeval2018" # "semeval2017" o "semeval2018"
+DATASET   = "semeval2017" # "semeval2017" o "semeval2018"
 
 MAX_COMMENTS = None  # None = todos los comentarios
 
