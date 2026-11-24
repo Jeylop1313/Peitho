@@ -1,8 +1,10 @@
 # PEITHO: A Cognitive Agent with LLMs for Sentiment Classification and Interpretability in Social Media Sarcasm
 
-Peitho (Heuristic Emotion Recognition through Modular Evaluative Synthesis) is a cognitive appraisal agent for sentiment classification grounded in Scherer's Component Process Model (CPM). It implements Theory-Driven Chain-of-Thought (TD-CoT) reasoning via a multi-stage pipeline built with LangGraph and Llama 4 Scout (via Groq).
+Peitho (formerly HERMES) is a cognitive appraisal agent for sentiment classification grounded in Scherer's Component Process Model (CPM). It implements Theory-Driven Chain-of-Thought (TD-CoT) reasoning via a multi-stage pipeline built with LangGraph and Llama 4 Scout (via Groq).
 
 ## Architecture
+
+This repository contains the **SemEval-2017 (English)** version of Peitho. The TASS 2019 PE (Spanish) version lives in [Peitho-reasoning-eval](https://github.com/Jeylop1313/Peitho-reasoning-eval).
 
 Peitho processes each tweet through 4 sequential Stimulus Evaluation Checks (SECs), followed by a convergence node that produces the final sentiment label:
 
@@ -29,10 +31,10 @@ Each SEC analyzes a different dimension of cognitive appraisal as defined by CPM
 
 ```
 src/enrichment_agent/
-├── Graph.py              # LangGraph pipeline (4 SECs + Convergence)
+├── graph.py              # LangGraph pipeline (4 SECs + Convergence)
 ├── State.py              # Agent state with token accumulators
 ├── configuration.py      # Runtime configuration
-├── converge_prompt.py    # Convergence prompt template
+├── converge_semeval2017.py # Convergence prompt (SemEval-2017, used here)
 ├── relevance.py          # SEC 1 prompt
 ├── implications.py       # SEC 2 prompt
 ├── coping.py             # SEC 3 prompt
@@ -40,7 +42,7 @@ src/enrichment_agent/
 ├── tools.py              # Tavily search tools (SEC 1 only)
 ├── utils.py              # Model initialization
 ├── batch_runner.py       # Batch evaluation with checkpointing and retry
-├── ablation.py           # Zero-shot baseline (no CPM pipeline)
+├── ablation.py           # Zero-shot and CoT baselines (no CPM pipeline)
 ├── benchmarks.py         # Metrics computation and error diagnostics
 └── Datasets/             # SemEval datasets
 ```
@@ -50,7 +52,7 @@ src/enrichment_agent/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/Jeylop13/Peitho.git
+git clone https://github.com/Jeylop1313/Peitho.git
 cd Peitho
 pip install -e .
 ```
@@ -89,6 +91,37 @@ python -m enrichment_agent.benchmarks
 ```
 
 Produces a `diagnostics_output/` folder with metrics summary, confusion matrix, error traces, and per-pattern error files.
+
+## Reproducibility
+
+Settings used to produce the results reported in the paper.
+
+**Model**
+- `meta-llama/llama-4-scout-17b-16e-instruct`, served through the Groq API.
+- Temperature 0 in every call.
+- Maximum output tokens: 2048 per call in Peitho (SEC nodes and convergence); 1024 in the baselines.
+
+**Peitho pipeline**
+- Each SEC node runs a two-phase loop: phase 0 is exploratory reasoning; phase 1 forces the node to commit to a text output without tools.
+- Only SEC 1 (Relevance) has tools: Tavily web search, `search_depth="basic"`, at most 3 results per query (`max_search_results` in `configuration.py`).
+- The convergence node returns the label through a structured tool call (`ConvergenceInfo`). The prompt and label set are selected with `convergence_variant`; `batch_runner.py` sets it to `semeval2017`.
+- Output: `results_current.json`, one record per tweet with the four SEC traces, the convergence reasoning and label, loop counts, time and token usage.
+
+**Baselines (`ablation.py`)**
+- One model call per tweet, no tools, no CPM pipeline.
+- Zero-shot: task description and output format only.
+- CoT: the zero-shot prompt plus "Let's think step by step." No reasoning steps are prescribed.
+- Select the condition and dataset with the `TECHNIQUE` and `DATASET` constants at the top of the file.
+
+**Failures and retries**
+- API calls are retried up to 3 times with exponential backoff on rate limits (429) and server errors (5xx).
+- A tweet that still fails is stored without a label (`convergence` is empty) and is reported as skipped by `benchmarks.py`.
+
+**Run dates**
+- SemEval-2017: Peitho April 2026; zero-shot and CoT May 2026.
+
+**Determinism**
+- Temperature 0 does not guarantee identical outputs from a hosted model, and Tavily results depend on the date of the search. Re-running the pipeline can therefore produce small differences; the released prediction files are the reference results.
 
 ## Key Features
 
